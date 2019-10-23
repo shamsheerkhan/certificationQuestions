@@ -1,0 +1,6 @@
+<order orderId='PO1234'>
+	<customer>
+		<customerName>"John Doe"</customerName>
+		<country>"UK"</country>
+	</customer>
+</order>
