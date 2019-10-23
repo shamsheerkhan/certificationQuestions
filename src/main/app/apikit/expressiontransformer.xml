@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:apikit="http://www.mulesoft.org/schema/mule/apikit" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/apikit http://www.mulesoft.org/schema/mule/apikit/current/mule-apikit.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd">
+    <http:request-config name="HTTP_Request_Configuration" host="mu.mulesoft-training.com" port="80" doc:name="HTTP Request Configuration"/>
+    <flow name="expressiontransformerFlow">
+        <http:listener config-ref="HTTP_Listener_Configuration" path="/united/api/unitedAllFlights" allowedMethods="GET" doc:name="HTTP-/united/api/unitedAllFlights"/>
+        <expression-transformer doc:name="Expression">
+            <return-argument expression="#[message.inboundProperties.uniqueId]" />
+            <return-argument expression="#[message.inboundProperties.source]" />
+        </expression-transformer>
+        <flow-ref name="unitedAllFlights" doc:name="unitedAllFlights Flow Reference"/>
+        <exception-strategy ref="expressiontransformerMapping_Exception_Strategy" doc:name="Reference Exception Strategy"/>
+    </flow>
+    <flow name="unitedAllFlights">
+        <http:request config-ref="HTTP_Request_Configuration" path="/essentials/united/flights" method="GET" doc:name="HTTP"/>
+        <catch-exception-strategy doc:name="Catch Exception Strategy">
+            <set-property propertyName="Content-Type" value="application/json" doc:name="Property"/>
+            <set-payload value="#['message':'Internal Server Error']" doc:name="Set Payload"/>
+        </catch-exception-strategy>
+    </flow>
+    <apikit:mapping-exception-strategy name="expressiontransformerMapping_Exception_Strategy">
+        <apikit:mapping statusCode="404">
+            <apikit:exception value="org.mule.module.apikit.exception.NotFoundException"/>
+            <set-property propertyName="Content-Type" value="application/json" doc:name="Property"/>
+            <set-payload value="{'message':'Resource Not Found'}" doc:name="Set Payload"/>
+        </apikit:mapping>
+        <apikit:mapping statusCode="405">
+            <apikit:exception value="org.mule.module.apikit.exception.MethodNotAllowedException"/>
+            <set-property propertyName="Content-Type" value="application/json" doc:name="Property"/>
+            <set-payload value="{'message':'Method Not Allowed'}" doc:name="Set Payload"/>
+        </apikit:mapping>
+        <apikit:mapping statusCode="415">
+            <apikit:exception value="org.mule.module.apikit.exception.UnsupportedMediaTypeException"/>
+            <set-property propertyName="Content-Type" value="application/json" doc:name="Property"/>
+            <set-payload doc:name="Set Payload" value="{'message':'Unsupported Media Type'}"/>
+        </apikit:mapping>
+        <apikit:mapping statusCode="406">
+            <apikit:exception value="org.mule.module.apikit.exception.NotAcceptableException"/>
+            <set-property propertyName="Content-Type" value="application/json" doc:name="Property"/>
+            <set-payload value="{&quot;message&quot;:&quot;Not Acceptable&quot;}" doc:name="Set Payload"/>
+        </apikit:mapping>
+        <apikit:mapping statusCode="400">
+            <apikit:exception value="org.mule.module.apikit.exception.BadRequestException"/>
+            <set-property propertyName="Content-Type" value="application/json" doc:name="Property"/>
+            <set-payload value="{'message':'Bad Request'}" doc:name="Set Payload"/>
+        </apikit:mapping>
+        <apikit:mapping statusCode="500">
+            <apikit:exception value="org.mule.api.transformer.TransformerMessagingException"/>
+            <set-property propertyName="Content-Type" value="application/json" doc:name="Property"/>
+            <set-payload value="{&quot;message&quot;:&quot;Expression Evaluator&quot;}" doc:name="Set Payload"/>
+        </apikit:mapping>
+        
+    </apikit:mapping-exception-strategy>
+</mule>
